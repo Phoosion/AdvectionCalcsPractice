@@ -5,6 +5,8 @@ using Printf
 import OrdinaryDiffEq as ODE
 
 export
+    calc_vortex_solutions,
+    calc_particle_solutions,
     calc_particle_poincare,
     calc_particle_trajectories,
     calc_particle_ftle,
@@ -13,12 +15,13 @@ export
     calc_particle_arclength,
     calc_particle_basins_of_attraction,
     calc_particle_lyapunov_spectrum,
-    calc_multiple_particle_methods,
     calc_ode,
+    particle_velocity,
     point_vortex_ode!
 
 include("./ode_calc_methods.jl")
 include("./ode_rhs.jl")
+include("./scalar_fields.jl")
 include("./particle_methods.jl")
 
 end

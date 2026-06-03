@@ -1,8 +1,47 @@
+function calc_vortex_solutions(ics, p, t_end; kwargs...)
+    (; nv) = p
+    ics = vec(stack(collect.(ics)))
+    println(ics)
+    vortex_sols =
+        begin
+            sols = VortexCalcs.calc_parallel_ode(
+                VortexCalcs.point_vortex_ode!,
+                [ics],
+                (0, t_end),
+                (p..., np=0);
+                kwargs...
+            ) |> only
+            map(i -> sols[2i-1:2i, :], 1:nv)
+        end
+    return vortex_sols
+end
+
+function calc_particle_solutions(vortex_ics, particle_ics, p, t_end; kwargs...)
+    (; nv) = p
+    vortex_ics = vec(stack(vortex_ics))
+    ics = map(ic -> vec(stack([vortex_ics; collect(ic)])), particle_ics)
+    particle_sols =
+        begin
+            sols = VortexCalcs.calc_parallel_ode(
+                VortexCalcs.point_vortex_ode!,
+                ics,
+                (0, t_end),
+                p;
+                kwargs...
+            )
+            map(sols) do sol
+                sol[2nv+1:end, :]
+            end
+        end
+    return particle_sols
+end
+
+
 function calc_particle_poincare(ics, p, t, numpoints, hyperplane; kwargs...)
     (; nv) = p
     condition1!(u, t, integrator) = begin
-        x = @view u[1:2:end]
-        y = @view u[2:2:end]
+        x = @view u[1:2:2nv]
+        y = @view u[2:2:2nv]
         return hyperplane(x, y)
     end
     affect1!(integrator) =
@@ -39,18 +78,6 @@ function calc_particle_poincare(ics, p, t, numpoints, hyperplane; kwargs...)
     return poincaremaps
 end
 
-function calc_particle_trajectories(ics, p, tspan; kwargs...)
-    (; nv) = p
-    sols = calc_parallel_ode(point_vortex_ode!, ics, tspan, p; kwargs...)
-    particlesols = begin
-        temp = vcat(map(sol -> sol[2*nv+1:end, :], sols)...)
-        tempX = @view temp[1:2:end, :]
-        tempY = @view temp[2:2:end, :]
-        map(rows -> vcat(rows[1]', rows[2]'), zip(eachrow(tempX), eachrow(tempY)))
-    end
-    return particlesols
-end
-
 function calc_particle_lyapunov_spectrum(ics, p, t, n_steps; kwargs...)
     return calc_parallel_lyapunov_spectrum(point_vortex_ode_tangent!, ics, p, 2, t, n_steps; kwargs...)
 end
@@ -61,6 +88,7 @@ end
 
 
 function calc_particle_ld(ics, p, tau; kwargs...)
+    (; nv, np) = p
     kwargs = merge(
         NamedTuple(kwargs),
         (
@@ -69,13 +97,17 @@ function calc_particle_ld(ics, p, tau; kwargs...)
             save_end=true,
         )
     )
-    ics = map(x -> [x; 0], ics)
-    ld_forward = map(sol -> sol[end, end], calc_parallel_ode(point_vortex_ode_ld!, ics, (0, tau), p; kwargs...))
-    ld_backward = map(sol -> sol[end, end], calc_parallel_ode(point_vortex_ode_ld!, ics, (0, -tau), p; kwargs...))
-    return ld_forward + ld_backward
+    ics = map(x -> [x; zeros(np)], ics)
+    ld_forward = map(calc_parallel_ode(point_vortex_ode_ld!, ics, (0, tau), p; kwargs...)) do sol
+        sol[2(nv+np)+1:2(nv+np)+np, :]
+    end
+    ld_backward = map(calc_parallel_ode(point_vortex_ode_ld!, ics, (0, -tau), p; kwargs...)) do sol
+        sol[2(nv+np)+1:2(nv+np)+np, :]
+    end
+    return ld_forward .+ ld_backward
 end
 
-function calc_particle_distance(ics, p, t, r; kwargs...)
+function calc_particle_distance(vortex_ics, particle_ics, p, t; kwargs...)
     kwargs = merge(
         NamedTuple(kwargs),
         (
@@ -84,12 +116,15 @@ function calc_particle_distance(ics, p, t, r; kwargs...)
             save_end=true,
         )
     )
-    sols = calc_parallel_ode(point_vortex_ode!, ics, (0, t), p; kwargs...)
-    dist = map(x -> norm(x[end-1:end, end] - x[end-1:end, 1], r), sols)
+    sols = calc_particle_solutions(vortex_ics, particle_ics, p, t; kwargs...)
+    dist = map(sols) do sol
+        x = eachcol(sol)
+        map(i -> norm(x[i] - x[1]), eachindex(x))
+    end
     return dist
 end
 
-function calc_particle_arclength(ics, p, t; kwargs...)
+function calc_particle_arclength(vortex_ics, particle_ics, p, t; kwargs...)
     kwargs = merge(
         NamedTuple(kwargs),
         (
@@ -98,14 +133,31 @@ function calc_particle_arclength(ics, p, t; kwargs...)
             save_end=true,
         )
     )
-    ics = map(x -> [x; 0], ics)
+    vortex_ics = stack(collect.(vortex_ics)) |> vec
+    ics = map(x -> [vortex_ics; collect(x); 0], ics)
     sol = calc_parallel_ode(point_vortex_ode_arclength!, ics, (0, t), p; kwargs...)
-    arclengths = map(x -> x[end, end], sol)
+    arclengths = map(x -> x[end, :], sol)
     return arclengths
 end
 
+function calc_particle_average_distance(ics, p, t; kwargs...)
+    (; nv, np) = p
+    kwargs = merge(
+        NamedTuple(kwargs),
+        (
+            save_everystep=false,
+            save_start=false,
+            save_end=true,
+        )
+    )
+    ics = map(x -> [x; 0; x[2nv+1:end]], ics)
+    sol = calc_parallel_ode(point_vortex_ode_particle_avg_distance!, ics, (0, t), p; kwargs...)
+    avg_distance = map(x -> x[2(nv+np)+1, :] ./ t, sol)
+    return avg_distance
+end
 
-function calc_particle_basins_of_attraction(ics, p, t; kwargs...)
+
+function calc_particle_distances_to_vortices(ics, p, t; kwargs...)
     (; nv) = p
     kwargs = merge(
         NamedTuple(kwargs),
@@ -116,110 +168,29 @@ function calc_particle_basins_of_attraction(ics, p, t; kwargs...)
         )
     )
     sols = calc_parallel_ode(point_vortex_ode!, ics, (0, t), p; kwargs...)
-    attractions = map(sols) do sol
-        distances = map(eachcol(sol)) do x
-            x_vortex = reshape(x[1:2nv], 2, nv) |> eachcol |> Vector
-            x_particle = x[end-1:end]
-            map(y -> norm(y - x_particle), x_vortex)
+    distances = map(sols) do sol
+        map(eachcol(sol)) do x
+            vortex_x = reshape(x[1:2nv], 2, nv) |> eachcol |> Vector
+            particle_x = x[end-1:end]
+            map(y -> norm(y - particle_x), vortex_x)
         end
-        map(i -> distances[i] ./ distances[1], eachindex(distances))
     end
-    return attractions
+    return distances
 end
 
 
-function calc_multiple_particle_methods(vortex_ics, particle_ics, p, t, flags, saves; kwargs...)
-    kwargs = merge(
-        NamedTuple(kwargs),
-        (
-            save_everystep=false,
-            save_start=true,
-            saveat=saves,
-            save_end=true,
-        )
-    )
-    (;
-        vortex_sol_flag,
-        ftle_flag, ld_flag,
-        arclength_flag, distance_flag,
-        attraction_flag
-    ) = flags
+function calc_particle_velocity_magnitude_field(vortex_points, particle_points, p)
+    (; omega, alpha, beta) = p
+    vortex_x = getindex.(vortex_points, 1)
+    vortex_y = getindex.(vortex_points, 2)
+    field = (x) -> norm(particle_velocity(x[1], x[2], vortex_x, vortex_y, omega, alpha, beta))
+    return map(field, particle_points)
+end
 
-    (; omega, alpha, beta, gamma) = p
-
-    ics = vec.(stack.(map(
-        ic -> [
-            vortex_ics;
-            ic
-        ], particle_ics
-    )))
-
-    ics_extended = map(
-        ic -> [ic;
-            (ftle_flag) ? Matrix{Float64}(I, 2, 2) |> vec : [];
-            (arclength_flag) ? [0.0] : []
-        ], ics
-    )
-
-    (; nv, np) = p
-    n = nv + np
-    n_tangents = ftle_flag ? 2np : 0
-    n_arclengths = arclength_flag ? np : 0
-
-    p_extended = (
-        p...,
-        nv=nv, np=np,
-        n_tangents=n_tangents,
-        n_arclengths=n_arclengths,
-    )
-
-    vortex_ics = vortex_ics |> stack |> vec
-
-    vortex_sol = vortex_sol_flag ? VortexCalcs.calc_ode(
-        VortexCalcs.point_vortex_ode!,
-        vortex_ics,
-        (0, t), (omega, alpha, beta);
-        kwargs...
-    ) : []
-
-    sols = calc_parallel_ode(point_vortex_ode_combined!, ics_extended, (0, t), p_extended; kwargs...)
-
-    particle_sols = map(sol -> sol[2nv+1:2nv+2, :], sols)
-
-    ftle_sols = ftle_flag ? map(sols) do sol
-        map(tangents -> log(opnorm(reshape(tangents, 2, 2))) / t, eachcol(sol[2n+1:2(n+n_tangents), :]))
-    end : []
-
-    arclength_sols = arclength_flag ? map(sol -> vec(sol[2(n+n_tangents)+1:2(n+n_tangents)+n_arclengths, :]), sols) : []
-
-    distance_sols = distance_flag ? map(particle_sols) do particle_sol
-        sol_cols = eachcol(particle_sol)
-        map(i -> norm(sol_cols[i] - sol_cols[1]), eachindex(sol_cols))
-    end : []
-
-    attraction_sols = attraction_flag ? map(sols) do sol
-        distances = map(eachcol(sol)) do x
-            particle_x = x[2nv+1:2(nv+np)]
-            vortex_x = reshape(x[1:2nv], 2, nv) |> eachcol |> Vector
-            map(y -> norm(y - particle_x), vortex_x)
-        end
-        map(i -> distances[i] ./ distances[1], eachindex(distances))
-    end : []
-
-    ld_sols = ld_flag ? begin
-        ics_ld = map(ic -> [ic; 0], ics)
-        ld_forward = map(sol -> sol[end, :], calc_parallel_ode(point_vortex_ode_ld!, ics_ld, (0, t), p; kwargs..., saveat=saves))
-        ld_backward = map(sol -> sol[end, :], calc_parallel_ode(point_vortex_ode_ld!, ics_ld, (0, -t), p; kwargs..., saveat=-saves))
-        ld_forward + ld_backward
-    end : []
-
-    return (
-        vortex_sol=vortex_sol,
-        particle_sol=particle_sols,
-        ftle_sol=ftle_sols,
-        ld_sol=ld_sols,
-        arclength_sol=arclength_sols,
-        distance_sol=distance_sols,
-        attraction_sol=attraction_sols
-    )
+function calc_particle_hamiltonian(vortex_points, particle_points, p)
+    (; omega, alpha, beta) = p
+    vortex_x = getindex.(vortex_points, 1)
+    vortex_y = getindex.(vortex_points, 2)
+    field = (x) -> particle_hamiltonian(x[1], x[2], vortex_x, vortex_y, omega, alpha, beta)
+    return map(field, particle_points)
 end
