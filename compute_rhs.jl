@@ -41,8 +41,8 @@ end
 )
     tangent_index = collect(eachindex(tangent_dx))
     particle_index = div.(tangent_index .- 1, 2) .+ 1
-    tangent_dx .= particle_dxdx[particle_index] .* tangent_x + particle_dxdy[particle_index] .* tangent_y
-    tangent_dy .= particle_dydx[particle_index] .* tangent_x + particle_dydy[particle_index] .* tangent_y
+    tangent_dx .= particle_dxdx[particle_index] .* tangent_x .+ particle_dxdy[particle_index] .* tangent_y
+    tangent_dy .= particle_dydx[particle_index] .* tangent_x .+ particle_dydy[particle_index] .* tangent_y
 end
 
 @inline function _compute_particle_and_tangent_rhs!(

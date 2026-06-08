@@ -1,7 +1,5 @@
 include("./compute_rhs.jl")
 
-
-
 function _point_vortex_rhs!(
     vortex_dx, vortex_dy,
     particle_dx, particle_dy,
@@ -63,7 +61,6 @@ function point_vortex_ode!(du, u, p, t)
         nv, np,
         # epsilon
     ) = p
-
     vortex_x = @view u[1:2:2nv]
     vortex_y = @view u[2:2:2nv]
     vortex_dx = @view du[1:2:2nv]
@@ -148,7 +145,7 @@ function point_vortex_ode_ld!(du, u, p, t)
         # epsilon
     )
 
-    d_ld .= abs.(particle_dx) .^ gamma + abs.(particle_dy) .^ gamma
+    d_ld .= abs.(particle_dx) .^ gamma .+ abs.(particle_dy) .^ gamma
 
     return nothing
 end
@@ -180,7 +177,7 @@ function point_vortex_ode_arclength!(du, u, p, t)
         alpha, beta,
         # epsilon
     )
-    d_arclength .= sqrt.(particle_dx .^ 2 + particle_dy .^ 2)
+    d_arclength .= sqrt.(particle_dx .^ 2 .+ particle_dy .^ 2)
     return nothing
 end
 
@@ -253,7 +250,7 @@ function point_vortex_ode_particle_avg_distance!(du, u, p, t)
         omega, alpha, beta
     )
 
-    d_distance .= sqrt.((particle_x - particle_ic_x) .^ 2 + (particle_y - particle_ic_y) .^ 2)
+    d_distance .= sqrt.((particle_x .- particle_ic_x) .^ 2 .+ (particle_y .- particle_ic_y) .^ 2)
 
     return nothing
 end
