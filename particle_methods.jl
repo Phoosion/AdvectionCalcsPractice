@@ -3,7 +3,9 @@ include("parallel_methods.jl")
 
 function calc_vortex_solutions(ic, p, t_end; kwargs...)
     (; nv) = p
+    ###
     @assert(length(ic) == nv)
+    ###
     ic = vec(stack(collect.(ic)))
     vortex_sols = begin
         sols = calc_ode(
@@ -18,12 +20,19 @@ function calc_vortex_solutions(ic, p, t_end; kwargs...)
     return vortex_sols
 end
 
-function calc_vortex_recurrence_plot(ic, p, t; tol=1e-6, coords=nothing, kwargs...)
+function calc_vortex_recurrence_plot(
+    ic, p, t;
+    tol=1e-6,
+    coords::Union{Nothing,Array{Int,1}}=nothing,
+    kwargs...
+)
     funcname = join(getproperty.(StackTraces.stacktrace()[1:2], :func), " ")
     (; nv, np) = p
+    ###
     (np == 0) || throw(ArgumentError("np != 0"))
     (length(ic) == nv) || throw(ArgumentError("length(ic) != nv"))
-    (isnothing(coords) || coords == 1 || coords == 2) || throw(ArgumentError("Invalid coords"))
+    (isnothing(coords) || coords == [1] || coords == [2]) || throw(ArgumentError("Invalid coords"))
+    ###
     ic = ic |> Iterators.flatten |> collect
     coords = isnothing(coords) ? [1, 2] : coords
     return map(fetch,
@@ -36,12 +45,19 @@ function calc_vortex_recurrence_plot(ic, p, t; tol=1e-6, coords=nothing, kwargs.
     )
 end
 
-function calc_particle_recurrence_plot(vortex_ics, particle_ics, p, t; tol=1e-6, coords=nothing, kwargs...)
+function calc_particle_recurrence_plot(
+    vortex_ics, particle_ics, p, t;
+    tol=1e-6,
+    coords::Union{Nothing,Array{Int,1}}=nothing,
+    kwargs...
+)
     funcname = join(getproperty.(StackTraces.stacktrace()[1:2], :func), " ")
     (; nv, np) = p
+    ###
     (np == 1) || throw(ArgumentError("np != 1"))
-    (isnothing(coords) || coords == 1 || coords == 2) || throw(ArgumentError("Invalid coords"))
+    (isnothing(coords) || coords == [1] || coords == [2]) || throw(ArgumentError("Invalid coords"))
     (length(vortex_ics) == nv) || throw(ArgumentError("length(ic) != 2nv"))
+    ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
     coords = isnothing(coords) ? [1, 2] : coords
@@ -56,21 +72,23 @@ function calc_particle_recurrence_plot(vortex_ics, particle_ics, p, t; tol=1e-6,
     )
 end
 
-function calc_particle_recurrence_rate(vortex_ics, particle_ics, p, t; tol=1e-6, coords=nothing, kwargs...)
+function calc_particle_recurrence_rate(
+    vortex_ics, particle_ics, p, t;
+    tol=1e-3 / 2,
+    coords::Union{Nothing,Array{Int,1}}=nothing,
+    kwargs...
+)
     funcname = join(getproperty.(StackTraces.stacktrace()[1:2], :func), " ")
-    (; nv, np) = p
-    (np == 1) || throw(ArgumentError("np != 1"))
-    (isnothing(coords) || coords == 1 || coords == 2) || throw(ArgumentError("Invalid coords"))
-    (length(vortex_ics) == nv) || throw(ArgumentError("length(ic) != 2nv"))
-    vortex_ics = vec(stack(vortex_ics))
-    ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
+    ###
+    (isnothing(coords) || coords == [1] || coords == [2]) || throw(ArgumentError("Invalid coords"))
+    ###
+    sols = calc_particle_solutions(vortex_ics, particle_ics, p, t[end]; (kwargs..., saveat=t)...)
     coords = isnothing(coords) ? [1, 2] : coords
-    axis = [2nv + 1; 2nv + 2][coords]
     return map(fetch,
-        map(enumerate(ics)) do (i, ic)
+        map(enumerate(sols)) do (i, sol)
             Threads.@spawn begin
                 Printf.@printf("%s || thread %3i, %8i\n", funcname, Threads.threadid(), i)
-                calc_recurrence_rate(point_vortex_ode!, ic, p, t, tol; axis=[axis], kwargs...)
+                calc_recurrence_rate_from_data((@view sol[coords, :]), tol)
             end
         end
     )
@@ -79,7 +97,9 @@ end
 
 function calc_vortex_poincare(ic, p, hyperplane, n_points; t_max=1e6, kwargs...)
     (; nv) = p
+    ###
     @assert(length(ic) == nv)
+    ###
     ic = vec(stack(collect.(ic)))
     t, vortex_map = calc_poincare_map(point_vortex_ode!, ic, (p..., np=0), hyperplane, n_points; t_max=t_max)
     return (Float64.(t), Float64.(vortex_map))
@@ -87,7 +107,9 @@ end
 
 function calc_vortex_particle_poincare(vortex_ics, particle_ics, p, hyperplane, n_points; t_max=1e6, kwargs...)
     (; nv, np) = p
+    ###
     @assert(length(vortex_ics) == nv & np == 1)
+    ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
     poincare_maps = begin
@@ -100,8 +122,12 @@ function calc_vortex_particle_poincare(vortex_ics, particle_ics, p, hyperplane, 
 end
 
 function calc_particle_solutions(vortex_ics, particle_ics, p, t_end; kwargs...)
-    (; nv) = p
-    @assert(length(vortex_ics) == nv)
+    funcname = join(getproperty.(StackTraces.stacktrace()[1:2], :func), " ")
+    (; nv, np) = p
+    ###
+    (np == 1) || throw(ArgumentError("np != 1"))
+    (length(vortex_ics) == nv) || throw(ArgumentError("length(ic) != 2nv"))
+    ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
     particle_sols = begin
@@ -112,7 +138,7 @@ function calc_particle_solutions(vortex_ics, particle_ics, p, t_end; kwargs...)
             p;
             kwargs...
         )
-        map(sols) do sol
+        @views map(sols) do sol
             sol[2nv+1:end, :]
         end
     end
@@ -127,7 +153,9 @@ end
 
 function calc_particle_finite_diff_ftle(vortex_ics, particle_ics, p, t; kwargs...)
     (; nv, np) = p
+    ###
     @assert(np == 1)
+    ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
     sol_axis = [1, 2] .+ 2 * nv

@@ -33,7 +33,7 @@ end
     particle_dy .= R .* (delta_x .* inv_r_sqr) * omega .+ flow_y
 end
 
-@inline function _compute_tangent_rhs!(
+@views @inline function _compute_tangent_rhs!(
     tangent_dx, tangent_dy,
     tangent_x, tangent_y,
     particle_dxdx, particle_dxdy,

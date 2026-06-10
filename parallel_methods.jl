@@ -1,7 +1,7 @@
 function calc_method_in_parallel(method, ics)
     funcname = join(getproperty.(StackTraces.stacktrace()[1:2], :func), " ")
     tasks = map(eachindex(ics)) do i
-        Threads.@spawn begin
+        @views Threads.@spawn begin
             Printf.@printf("%s || thread %3i, %8i\n", funcname, Threads.threadid(), i)
             method(ics[i])
         end

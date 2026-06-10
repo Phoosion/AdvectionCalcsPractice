@@ -46,15 +46,6 @@ function calc_finite_diff_ftle(f, ic, p, t_end; sol_axis=nothing, kwargs...)
 end
 
 
-function calc_parallel_poincare_map(f, ics, p, hyperplane, n_points; t_max=1e6, kwargs...)
-    poincare_max_sol = (ic) -> calc_poincare_map(
-        f, ic, p, hyperplane, n_points;
-        t_max=t_max, kwargs...
-    )
-    return calc_method_in_parallel(poincare_max_sol, ics)
-end
-
-
 function calc_poincare_map(f, ic, p, hyperplane, n_points; t_max=1e6, kwargs...)
     condition1!(u, t, integrator) = begin
         return hyperplane(u)
@@ -117,7 +108,7 @@ function calc_recurrence_plot(
     )
     axis = isnothing(axis) ? eachindex(ic) : axis
     u = eachcol(calc_ode(f, ic, (0, t[end]), p; kwargs...)[axis, :])
-    rp = map(x -> map(y -> LinearAlgebra.norm(x - y) < tol, u), u) |> stack
+    rp = [LinearAlgebra.norm(x - y) < tol for x in u, y in u]
     return rp
 end
 
@@ -139,4 +130,17 @@ function calc_recurrence_rate(
     u = eachcol(calc_ode(f, ic, (0, t[end]), p; kwargs...)[axis, :])
     rr = sum(x -> sum(y -> LinearAlgebra.norm(x - y) < tol, u), u) / (n^2)
     return rr
+end
+
+function calc_recurrence_plot_from_data(u, tol)
+    _u = eachcol(u)
+    recurrence_plot = [LinearAlgebra.norm(x - y) < tol for x in _u, y in _u]
+    return recurrence_plot
+end
+
+function calc_recurrence_rate_from_data(u, tol)
+    _u = eachcol(u)
+    n = length(_u)
+    recurrence_rate = sum(x -> sum(y -> LinearAlgebra.norm(x - y) < tol, u), u) / (n^2)
+    return recurrence_rate
 end

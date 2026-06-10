@@ -84,36 +84,34 @@ function point_vortex_ode!(du, u, p, t)
 end
 
 
-function point_vortex_ode(u, p, t)
-    (;
-        omega,
-        alpha, beta,
-        nv, np,
-        # epsilon
-    ) = p
+# function point_vortex_ode(u, p, t)
+#     (;
+#         omega,
+#         alpha, beta,
+#         nv, np,
+#     ) = p
 
-    du = zeros(size(u))
-    vortex_x = @view u[1:2:2nv]
-    vortex_y = @view u[2:2:2nv]
-    vortex_dx = @view du[1:2:2nv]
-    vortex_dy = @view du[2:2:2nv]
-    particle_x = @view u[2nv+1:2:2(nv+np)]
-    particle_y = @view u[2nv+2:2:2(nv+np)]
-    particle_dx = @view du[2nv+1:2:2(nv+np)]
-    particle_dy = @view du[2nv+2:2:2(nv+np)]
+#     du = zeros(size(u))
+#     vortex_x = @view u[1:2:2nv]
+#     vortex_y = @view u[2:2:2nv]
+#     vortex_dx = @view du[1:2:2nv]
+#     vortex_dy = @view du[2:2:2nv]
+#     particle_x = @view u[2nv+1:2:2(nv+np)]
+#     particle_y = @view u[2nv+2:2:2(nv+np)]
+#     particle_dx = @view du[2nv+1:2:2(nv+np)]
+#     particle_dy = @view du[2nv+2:2:2(nv+np)]
 
-    _point_vortex_rhs!(
-        vortex_dx, vortex_dy,
-        particle_dx, particle_dy,
-        vortex_x, vortex_y,
-        particle_x, particle_y,
-        omega,
-        alpha, beta,
-        # epsilon
-    )
-
-    return du
-end
+#     _point_vortex_rhs!(
+#         vortex_dx, vortex_dy,
+#         particle_dx, particle_dy,
+#         vortex_x, vortex_y,
+#         particle_x, particle_y,
+#         omega,
+#         alpha, beta,
+#         # epsilon
+#     )
+#     return du
+# end
 
 function point_vortex_ode_ld!(du, u, p, t)
 
