@@ -7,14 +7,23 @@
     nsteps::Int = 100
 end
 
-@kwdef struct ParticleInitialConditionGrid
-    grid_nx::Int = 2^4 + 1
-    grid_ny::Int = 2^4 + 1
-    xy_interval::Tuple{Float64,Float64,Float64,Float64} = (-1, 1, -1, 1)
+@kwdef mutable struct ParticleInitialConditionGrid
+    nx::Int = 2^4 + 1
+    ny::Int = 2^4 + 1
+    intervals::Tuple{Float64,Float64,Float64,Float64} = (-1, 1, -1, 1)
+    particle_ic::Array{Tuple{Float64,Float64},1}
+    ParticleInitialConditionGrid(nx, ny, intervals) = new(
+        nx, ny, intervals,
+        Iterators.product(
+            collect(range(intervals[1], intervals[2], nx)),
+            collect(range(intervals[3], intervals[4], ny))
+        ) |> collect |> vec
+    )
+
 end
 
 @kwdef struct PointVortexSolution
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     nvortex::Int
     nparticle::Int
     solution::Array{Matrix{Float64},1}
@@ -22,21 +31,21 @@ end
 end
 
 @kwdef struct PoincareMapSolution
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     times::Array{Float64,1}
     solution::Array{Matrix{Float64},1}
     message::String
 end
 
 @kwdef struct FTLEField
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     grid::ParticleInitialConditionGrid
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String
 end
 
 @kwdef struct LDField
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     grid::ParticleInitialConditionGrid
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String
@@ -44,21 +53,21 @@ end
 
 
 @kwdef struct DistanceField
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     grid::ParticleInitialConditionGrid
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String
 end
 
 @kwdef struct DistanceArclengthRatioField
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     grid::ParticleInitialConditionGrid
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String
 end
 
 @kwdef struct RecurrenceRateField
-    initial_parameters::Parameters
+    initial_parameters::PointVortexODEParameters
     grid::ParticleInitialConditionGrid
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String

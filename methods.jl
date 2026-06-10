@@ -38,7 +38,7 @@ function calc_finite_diff_ftle(f, ic, p, t_end; sol_axis=nothing, kwargs...)
         f, setindex!(ic, x, sol_axis), (0, t_end), p; kwargs...
     )[sol_axis]
     delta = FiniteDifferences.jacobian(
-        central_fdm(2, 1, max_range=1e-2, factor=1e6),
+        FiniteDifferences.central_fdm(2, 1),
         sol, ic[sol_axis]
     )[1]
     lambda = log(LinearAlgebra.opnorm(delta)) / t_end

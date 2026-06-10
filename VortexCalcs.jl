@@ -17,9 +17,18 @@ export calc_vortex_solutions,
     calc_ode,
     calc_recurrence_plot,
     particle_velocity,
-    point_vortex_ode!
+    point_vortex_ode!,
+    PointVortexODEParameters,
+    ParticleInitialConditionGrid,
+    PointVortexSolution,
+    PoincareMapSolution,
+    FTLEField,
+    LDField,
+    RecurrenceRateField,
+    DistanceArclengthRatioField,
+    DistanceField
 
-
+include("./structs.jl")
 include("./rhs.jl")
 include("./methods.jl")
 include("./parallel_methods.jl")

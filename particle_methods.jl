@@ -146,6 +146,10 @@ function calc_particle_solutions(vortex_ics, particle_ics, p, t_end; kwargs...)
 end
 
 function calc_particle_ftle(vortex_ics, particle_ics, p, t; kwargs...)
+    (; np) = p
+    ###
+    @assert(np == 1)
+    ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
     return calc_parallel_ftle(point_vortex_ode_tangent!, ics, p, 2, t; kwargs...)
@@ -164,6 +168,9 @@ end
 
 function calc_particle_ld(vortex_ics, particle_ics, p, tau; kwargs...)
     (; nv, np) = p
+    ###
+    @assert(np == 1)
+    ###
     kwargs = merge(
         NamedTuple(kwargs),
         (
@@ -184,6 +191,10 @@ function calc_particle_ld(vortex_ics, particle_ics, p, tau; kwargs...)
 end
 
 function calc_particle_distance(vortex_ics, particle_ics, p, t; kwargs...)
+    (; np) = p
+    ###
+    @assert(np == 1)
+    ###
     kwargs = merge(
         NamedTuple(kwargs),
         (
@@ -201,6 +212,10 @@ function calc_particle_distance(vortex_ics, particle_ics, p, t; kwargs...)
 end
 
 function calc_particle_arclength(vortex_ics, particle_ics, p, t; kwargs...)
+    (; np) = p
+    ###
+    @assert(np == 1)
+    ###
     kwargs = merge(
         NamedTuple(kwargs),
         (
@@ -217,6 +232,10 @@ function calc_particle_arclength(vortex_ics, particle_ics, p, t; kwargs...)
 end
 
 function calc_particle_average_distance(vortex_ics, particle_ics, p, t; kwargs...)
+    (; np) = p
+    ###
+    @assert(np == 1)
+    ###
     (; nv, np) = p
     kwargs = merge(
         NamedTuple(kwargs),
@@ -233,29 +252,6 @@ function calc_particle_average_distance(vortex_ics, particle_ics, p, t; kwargs..
     avg_distance = map(x -> x[2(nv+np)+1, :] ./ t, sol)
     return avg_distance
 end
-
-
-# function calc_particle_distances_to_vortices(ics, p, t; kwargs...)
-#     (; nv) = p
-#     kwargs = merge(
-#         NamedTuple(kwargs),
-#         (
-#             save_everystep=false,
-#             save_start=true,
-#             save_end=true,
-#         )
-#     )
-#     sols = calc_parallel_ode(point_vortex_ode!, ics, (0, t), p; kwargs...)
-#     distances = map(sols) do sol
-#         map(eachcol(sol)) do x
-#             vortex_x = reshape(x[1:2nv], 2, nv) |> eachcol |> Vector
-#             particle_x = x[end-1:end]
-#             map(y -> norm(y - particle_x), vortex_x)
-#         end
-#     end
-#     return distances
-# end
-
 
 function calc_particle_velocity_magnitude_field(vortex_points, particle_points, p)
     (; omega, alpha, beta) = p
