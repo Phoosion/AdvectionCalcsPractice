@@ -14,7 +14,7 @@ function calc_vortex_solutions(ic, p, t_end; kwargs...)
             (0, t_end),
             (p..., np=0);
             kwargs...
-        ) |> only
+        )
         map(i -> sols[2i-1:2i, :], 1:nv)
     end
     return vortex_sols
@@ -138,7 +138,7 @@ function calc_particle_solutions(vortex_ics, particle_ics, p, t_end; kwargs...)
             p;
             kwargs...
         )
-        @views map(sols) do sol
+        map(sols) do sol
             sol[2nv+1:end, :]
         end
     end
@@ -246,8 +246,7 @@ function calc_particle_average_distance(vortex_ics, particle_ics, p, t; kwargs..
         )
     )
     vortex_ics = stack(collect.(vortex_ics)) |> vec
-    ics = map(x -> [vortex_ics; collect(x); 0], ics)
-    ics = map(x -> [x; 0; x[2nv+1:end]], ics)
+    ics = map(x -> [vortex_ics; x; 0; x], collect.(particle_ics))
     sol = calc_parallel_ode(point_vortex_ode_particle_avg_distance!, ics, (0, t), p; kwargs...)
     avg_distance = map(x -> x[2(nv+np)+1, :] ./ t, sol)
     return avg_distance

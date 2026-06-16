@@ -1,12 +1,15 @@
 function calc_method_in_parallel(method, ics)
     funcname = join(getproperty.(StackTraces.stacktrace()[1:2], :func), " ")
+    n = length(ics)
     tasks = map(eachindex(ics)) do i
-        @views Threads.@spawn begin
-            Printf.@printf("%s || thread %3i, %8i\n", funcname, Threads.threadid(), i)
-            method(ics[i])
+        Threads.@spawn begin
+            Printf.@printf("%s || thread %3i || %5i of %5i || %16s || start\n", funcname, Threads.threadid(), i, n, string(Dates.now()))
+            solution = method(ics[i])
+            Printf.@printf("%s || thread %3i || %5i of %5i || %16s || end\n", funcname, Threads.threadid(), i, n, string(Dates.now()))
+            return solution
         end
     end
-    sol = map(fetch, tasks)
+    sol = fetch.(tasks)
     return sol
 end
 

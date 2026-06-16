@@ -26,14 +26,19 @@ end
     initial_parameters::PointVortexODEParameters
     nvortex::Int
     nparticle::Int
-    solution::Array{Matrix{Float64},1}
+    t::Array{Float64,1}
+    vortex_solution::Array{Matrix{Float64},1}
+    particle_solution::Union{Array{Matrix{Float64},1},Nothing}
     message::String
 end
 
 @kwdef struct PoincareMapSolution
     initial_parameters::PointVortexODEParameters
-    times::Array{Float64,1}
-    solution::Array{Matrix{Float64},1}
+    nvortex::Int
+    nparticle::Int
+    t::Array{Array{Float64,1},1}
+    vortex_maps::Array{Matrix{Float64},1}
+    particle_maps::Array{Matrix{Float64},1}
     message::String
 end
 

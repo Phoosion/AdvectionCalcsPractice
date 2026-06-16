@@ -53,7 +53,7 @@ function calc_poincare_map(f, ic, p, hyperplane, n_points; t_max=1e6, kwargs...)
     affect1!(integrator) = begin
         if (length(integrator.sol.u) % 20 == 0)
             Printf.@printf(
-                "%8sthread %2i || n_points = %5i, %.1f\n",
+                "%8sthread %2i || n_points = %5i || t = %.1f\n",
                 "", Threads.threadid(), length(integrator.sol.u), integrator.sol.t[end])
         end
     end
