@@ -5,7 +5,7 @@ function calc_method_in_parallel(method, ics)
         Threads.@spawn begin
             Printf.@printf("%s || thread %3i || %5i of %5i || %16s || start\n", funcname, Threads.threadid(), i, n, string(Dates.now()))
             solution = method(ics[i])
-            Printf.@printf("%s || thread %3i || %5i of %5i || %16s || end\n", funcname, Threads.threadid(), i, n, string(Dates.now()))
+            Printf.@printf("%s || thread %3i || %5i of %5i || %16s ||   end\n", funcname, Threads.threadid(), i, n, string(Dates.now()))
             return solution
         end
     end

@@ -36,6 +36,7 @@ end
     initial_parameters::PointVortexODEParameters
     nvortex::Int
     nparticle::Int
+    npoints::Int
     t::Array{Array{Float64,1},1}
     vortex_maps::Array{Matrix{Float64},1}
     particle_maps::Array{Matrix{Float64},1}
@@ -74,6 +75,7 @@ end
 @kwdef struct RecurrenceRateField
     initial_parameters::PointVortexODEParameters
     grid::ParticleInitialConditionGrid
+    tol::Float64
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String
 end

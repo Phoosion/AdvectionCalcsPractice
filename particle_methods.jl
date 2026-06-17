@@ -4,7 +4,7 @@ include("parallel_methods.jl")
 function calc_vortex_solutions(ic, p, t_end; kwargs...)
     (; nv) = p
     ###
-    @assert(length(ic) == nv)
+    @assert length(ic) == nv
     ###
     ic = vec(stack(collect.(ic)))
     vortex_sols = begin
@@ -108,7 +108,7 @@ end
 function calc_vortex_particle_poincare(vortex_ics, particle_ics, p, hyperplane, n_points; t_max=1e6, kwargs...)
     (; nv, np) = p
     ###
-    @assert(length(vortex_ics) == nv & np == 1)
+    @assert (length(vortex_ics) == nv) & (np == 1)
     ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
@@ -148,7 +148,7 @@ end
 function calc_particle_ftle(vortex_ics, particle_ics, p, t; kwargs...)
     (; np) = p
     ###
-    @assert(np == 1)
+    @assert np == 1
     ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
@@ -158,7 +158,7 @@ end
 function calc_particle_finite_diff_ftle(vortex_ics, particle_ics, p, t; kwargs...)
     (; nv, np) = p
     ###
-    @assert(np == 1)
+    @assert np == 1
     ###
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic])), collect.(particle_ics))
@@ -169,7 +169,7 @@ end
 function calc_particle_ld(vortex_ics, particle_ics, p, tau; kwargs...)
     (; nv, np) = p
     ###
-    @assert(np == 1)
+    @assert np == 1
     ###
     kwargs = merge(
         NamedTuple(kwargs),
@@ -193,7 +193,7 @@ end
 function calc_particle_distance(vortex_ics, particle_ics, p, t; kwargs...)
     (; np) = p
     ###
-    @assert(np == 1)
+    @assert np == 1
     ###
     kwargs = merge(
         NamedTuple(kwargs),
@@ -214,7 +214,7 @@ end
 function calc_particle_arclength(vortex_ics, particle_ics, p, t; kwargs...)
     (; np) = p
     ###
-    @assert(np == 1)
+    @assert np == 1
     ###
     kwargs = merge(
         NamedTuple(kwargs),
@@ -234,7 +234,7 @@ end
 function calc_particle_average_distance(vortex_ics, particle_ics, p, t; kwargs...)
     (; np) = p
     ###
-    @assert(np == 1)
+    @assert np == 1
     ###
     (; nv, np) = p
     kwargs = merge(
