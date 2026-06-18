@@ -15,7 +15,7 @@ function calc_vortex_solutions(ic, p, t_end; kwargs...)
             (p..., np=0);
             kwargs...
         )
-        map(i -> sols[2i-1:2i, :], 1:nv)
+        map(i -> sols[(2i-1):2i, :], 1:nv)
     end
     return vortex_sols
 end
@@ -115,7 +115,7 @@ function calc_vortex_particle_poincare(vortex_ics, particle_ics, p, hyperplane, 
     poincare_maps = begin
         sols = calc_parallel_poincare_map(point_vortex_ode!, ics, p, hyperplane, n_points; t_max=t_max)
         map(sols) do (t, map)
-            return (t, map[1:2nv, :], map[2nv+1:end, :])
+            return (t, map[1:2nv, :], map[(2nv+1):end, :])
         end
     end
     return poincare_maps
@@ -139,7 +139,7 @@ function calc_particle_solutions(vortex_ics, particle_ics, p, t_end; kwargs...)
             kwargs...
         )
         map(sols) do sol
-            sol[2nv+1:end, :]
+            sol[(2nv+1):end, :]
         end
     end
     return particle_sols
@@ -182,10 +182,10 @@ function calc_particle_ld(vortex_ics, particle_ics, p, tau; kwargs...)
     vortex_ics = vec(stack(vortex_ics))
     ics = map(ic -> vec(stack([vortex_ics; ic; zeros(np)])), collect.(particle_ics))
     ld_forward = map(calc_parallel_ode(point_vortex_ode_ld!, ics, (0, tau), p; kwargs...)) do sol
-        sol[2(nv+np)+1:2(nv+np)+np, :]
+        sol[(2(nv+np)+1):(2(nv+np)+np), :]
     end
     ld_backward = map(calc_parallel_ode(point_vortex_ode_ld!, ics, (0, -tau), p; kwargs...)) do sol
-        sol[2(nv+np)+1:2(nv+np)+np, :]
+        sol[(2(nv+np)+1):(2(nv+np)+np), :]
     end
     return ld_forward .+ ld_backward
 end
@@ -206,7 +206,7 @@ function calc_particle_distance(vortex_ics, particle_ics, p, t; kwargs...)
     sols = calc_particle_solutions(vortex_ics, particle_ics, p, t; kwargs...)
     dist = map(sols) do sol
         x = eachcol(sol)
-        map(i -> norm(x[i] - x[1]), eachindex(x))
+        LinearAlgebra.norm(x[end] - x[begin])
     end
     return dist
 end
@@ -225,11 +225,25 @@ function calc_particle_arclength(vortex_ics, particle_ics, p, t; kwargs...)
         )
     )
     vortex_ics = stack(collect.(vortex_ics)) |> vec
-    ics = map(x -> [vortex_ics; x; 0; x], collect.(particle_ics))
+    ics = map(x -> [vortex_ics; x; 0], collect.(particle_ics))
     sol = calc_parallel_ode(point_vortex_ode_arclength!, ics, (0, t), p; kwargs...)
-    arclengths = map(x -> x[end, :], sol)
+    arclengths = map(x -> x[end, end], sol)
     return arclengths
 end
+
+function calc_particle_distance_arclength_ratio(vortex_ics, particle_ics, p, t; kwargs...)
+    (; np) = p
+    ###
+    @assert np == 1
+    ###
+    dists = calc_particle_distance(vortex_ics, particle_ics, p, t; kwargs...)
+    arclengths = calc_particle_arclength(vortex_ics, particle_ics, p, t; kwargs...)
+    ratios = map(zip(dists, arclengths)) do (x, y)
+        y != 0 ? x / y : 1
+    end
+    return ratios
+end
+
 
 function calc_particle_average_distance(vortex_ics, particle_ics, p, t; kwargs...)
     (; np) = p

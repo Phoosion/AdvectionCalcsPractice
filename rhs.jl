@@ -118,7 +118,6 @@ function point_vortex_ode_ld!(du, u, p, t)
     (;
         omega,
         alpha, beta,
-        gamma,
         nv, np,
         # epsilon
     ) = p
@@ -143,7 +142,7 @@ function point_vortex_ode_ld!(du, u, p, t)
         # epsilon
     )
 
-    d_ld .= abs.(particle_dx) .^ gamma .+ abs.(particle_dy) .^ gamma
+    d_ld .= sqrt.(abs.(particle_dx)) .+ sqrt.(abs.(particle_dy))
 
     return nothing
 end

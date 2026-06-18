@@ -55,6 +55,7 @@ end
     grid::ParticleInitialConditionGrid
     solution::Union{Matrix{Float64},Array{Float64,1}}
     message::String
+    tau::Float64
 end
 
 
